@@ -22,17 +22,17 @@ function App() {
           placeContent: "center",
           placeItems: "center",
 
-          gridTemplateAreas: `
-          ${Array.from({ length: ambiguity + 1 })
-            .map((_, y) => ambiguity - y)
-            .map((y) => {
-              return Array.from({ length: query.length + 1 })
-                .map((_, x) => `c${x}-${y}`)
-                .join(" ");
-            })
-            .map((x) => `"${x}"`)
-            .join(" ")}
-          `,
+          // gridTemplateAreas: `
+          // ${Array.from({ length: ambiguity + 1 })
+          //   .map((_, y) => ambiguity - y)
+          //   .map((y) => {
+          //     return Array.from({ length: query.length + 1 })
+          //       .map((_, x) => `c${x}-${y}`)
+          //       .join(" ");
+          //   })
+          //   .map((x) => `"${x}"`)
+          //   .join(" ")}
+          // `,
           gridTemplateColumns: `repeat(${query.length + 1}, ${gridSize})`,
           gridTemplateRows: `repeat(${ambiguity + 1}, ${gridSize})`,
           gap: 10,
@@ -41,30 +41,40 @@ function App() {
         {productFromLen(query.length + 1, ambiguity + 1).map(([x, y]) => (
           <div
             key={`${x}-${y}`}
-            style={{
-              gridArea: `c${x}-${y}`,
-              // gridArea: `header`,
-              background: "lightgray",
-            }}
+            style={
+              {
+                // gridArea: `c${x}-${y}`,
+                // gridArea: `header`,
+                // background: "lightgray",
+              }
+            }
           >
-            <div
-              data-x={x}
-              data-y={y}
-              style={{
-                width: 30,
-                height: 30,
-                border: "solid 1px",
-                borderRadius: "100%",
-              }}
-            >
-              {`${x}-${y}`}
-            </div>
+            <Cell x={x} y={y} />
           </div>
         ))}
         {/* draw arrow */}
         <Arrows />
       </div>
     </>
+  );
+}
+function Cell({ x, y }: { x: number; y: number }) {
+  const result = useAtomValue(resultAtom);
+
+  return (
+    <div
+      data-x={x}
+      data-y={y}
+      style={{
+        width: 30,
+        height: 30,
+        border: "solid 1px",
+        borderRadius: "100%",
+        background: result.bits[y][x] ? "yellow" : "white",
+      }}
+    >
+      {`${x}-${y}`}
+    </div>
   );
 }
 
@@ -113,12 +123,15 @@ function Target() {
   );
 }
 
-function Result() {
-  const query = useAtomValue(queryAtom);
-  const ambiguity = useAtomValue(ambiguityAtom);
-  const target = useAtomValue(targetAtom);
+const resultAtom = atom((get) => {
+  const query = get(queryAtom);
+  const ambiguity = get(ambiguityAtom);
+  const target = get(targetAtom);
   const match = Asearch(query);
-  const result = match(target, ambiguity);
+  return match(target, ambiguity);
+});
+function Result() {
+  const result = useAtomValue(resultAtom);
   return (
     <div>
       <div>result: {result.matched ? "matched" : "not matched"}</div>

@@ -1,6 +1,7 @@
+// based on https://www.npmjs.com/package/asearch
+
 const INITPAT = 0x80000000;
 const MAXCHAR = 0x10000;
-const INITSTATE = [INITPAT, 0, 0, 0];
 const isupper = (c: number) => c >= 0x41 && c <= 0x5a;
 const islower = (c: number) => c >= 0x61 && c <= 0x7a;
 const tolower = (c: number) => (isupper(c) ? c + 0x20 : c);
@@ -26,9 +27,7 @@ export function Asearch(source: string) {
   }
   acceptpat = mask;
 
-  function getState(state = INITSTATE, str = "") {
-    // ambig -> state
-
+  function getState(state: number[], str = "") {
     for (const c of unpack(str)) {
       mask = shiftpat[c];
       for (let i = state.length - 1; i > 0; i--) {
@@ -43,6 +42,8 @@ export function Asearch(source: string) {
       for (let i = 1; i < state.length; i++) {
         state[i] |= state[i - 1] >>> 1;
       }
+
+      // ambig = 3
       //   i3 = (i3 & epsilon) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
       //   i3 = (i3 & epsilon) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
       //   i2 = (i2 & epsilon) | ((i2 & mask) >>> 1) | (i1 >>> 1) | i1;
@@ -65,6 +66,8 @@ export function Asearch(source: string) {
   }
 
   function match(str: string, ambig = 0) {
+    const INITSTATE = Array.from({ length: ambig + 1 }, () => 0);
+    INITSTATE[0] = INITPAT;
     const state = getState(INITSTATE, str);
     if (ambig >= INITSTATE.length) {
       ambig = INITSTATE.length - 1;
@@ -72,7 +75,6 @@ export function Asearch(source: string) {
     const matched = (state[ambig] & acceptpat) !== 0;
     return {
       matched,
-      state,
       bits: state.map(numberToBitArray),
     };
   }
@@ -87,5 +89,5 @@ function numberToBitArray(n: number) {
   for (let i = 0; i < 32; i++) {
     bits.push((n & (1 << i)) !== 0);
   }
-  return bits;
+  return bits.reverse();
 }
