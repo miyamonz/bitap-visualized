@@ -30,12 +30,11 @@ export function Asearch(source: string) {
   function getState(state: number[], str = "") {
     for (const c of unpack(str)) {
       mask = shiftpat[c];
+      function tick(prev: number, curr: number) {
+        return (curr & epsilon) | ((curr & mask) >>> 1) | (prev >>> 1) | prev;
+      }
       for (let i = state.length - 1; i > 0; i--) {
-        state[i] =
-          (state[i] & epsilon) |
-          ((state[i] & mask) >>> 1) |
-          (state[i - 1] >>> 1) |
-          state[i - 1];
+        state[i] = tick(state[i - 1], state[i]);
       }
       state[0] = (state[0] & epsilon) | ((state[0] & mask) >>> 1);
 
@@ -44,7 +43,6 @@ export function Asearch(source: string) {
       }
 
       // ambig = 3
-      //   i3 = (i3 & epsilon) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
       //   i3 = (i3 & epsilon) | ((i3 & mask) >>> 1) | (i2 >>> 1) | i2;
       //   i2 = (i2 & epsilon) | ((i2 & mask) >>> 1) | (i1 >>> 1) | i1;
       //   i1 = (i1 & epsilon) | ((i1 & mask) >>> 1) | (i0 >>> 1) | i0;
@@ -73,9 +71,11 @@ export function Asearch(source: string) {
       ambig = INITSTATE.length - 1;
     }
     const matched = (state[ambig] & acceptpat) !== 0;
+
+    const stateLen = Math.clz32(acceptpat) + 1;
     return {
       matched,
-      bits: state.map(numberToBitArray),
+      bits: state.map((s) => toBitArray(s)),
     };
   }
 
@@ -84,10 +84,6 @@ export function Asearch(source: string) {
   return match;
 }
 
-function numberToBitArray(n: number) {
-  const bits = [];
-  for (let i = 0; i < 32; i++) {
-    bits.push((n & (1 << i)) !== 0);
-  }
-  return bits.reverse();
+export function toBitArray(n: number, len = 32) {
+  return Array.from({ length: len }, (_, i) => !!(n & (1 << (31 - i))));
 }
